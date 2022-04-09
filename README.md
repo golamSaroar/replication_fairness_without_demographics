@@ -6,6 +6,8 @@ This repository is a replication of the paper [Fairness without Demographics thr
 
 ## Requirements
 
+awk -F '[[:space:]]*,[[:space:]]*' '{$1=$1}1' OFS=, adult.data
+
 To install requirements:
 
 ```setup
