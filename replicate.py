@@ -14,6 +14,10 @@ default_conf = Namespace(
     primary_lr=0.1,
     sensitive_label=False,
 
+    eval_batch_size=512,
+    num_workers=4,  # for the Dataloader
+    progress_bar=True,
+
     # ARL
     pretrain_steps=250,  # pretrain the learner before adversary
 

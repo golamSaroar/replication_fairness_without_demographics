@@ -1,8 +1,46 @@
 from argparse import Namespace
 import pytorch_lightning as pl
 import numpy as np
+from torch.utils.data import DataLoader
+from pytorch_lightning.callbacks import EarlyStopping
+import torch
 
 from datasets import Dataset, CustomSubset
+
+
+def train(config,
+          args,
+          train_dataset,
+          val_dataset=None,
+          test_dataset=None):
+    # create fold loaders and callbacks
+    train_loader = DataLoader(train_dataset,
+                              batch_size=config['batch_size'],
+                              shuffle=True,
+                              num_workers=args.num_workers,
+                              pin_memory=True)
+
+    callbacks = []
+
+    if val_dataset is not None:
+        callbacks.append(EarlyStopping(
+            monitor='validation/micro_avg_auc',
+            min_delta=0.00,
+            patience=10,
+            verbose=True,
+            mode='max'
+        ))
+
+    # TODO: get model
+
+    trainer = pl.Trainer(gpus=1 if torch.cuda.is_available() else 0,
+                         max_steps=args.train_steps + args.pretrain_steps,
+                         callbacks=callbacks,
+                         gradient_clip_val=1 if args.model == 'DRO' else 0,
+                         progress_bar_refresh_rate=1 if args.progress_bar else 0,
+                         )
+
+    return "model", "trainer"
 
 
 def train_and_evaluate(conf):
@@ -26,7 +64,7 @@ def train_and_evaluate(conf):
                                                                                       int(0.9 * len(permuted_indices)):]
     train_dataset, val_dataset = CustomSubset(dataset, train_indices), CustomSubset(dataset, val_indices)
 
-    model, _ = ("model", "trainer")  # TODO: write trainer
+    model, _ = train(config, conf, train_dataset=train_dataset, val_dataset=val_dataset, test_dataset=test_dataset)
 
     auc_scores = {}
 
