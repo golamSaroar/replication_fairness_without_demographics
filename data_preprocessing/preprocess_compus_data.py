@@ -15,9 +15,6 @@ race_dict = {
     "Caucasian": "White"
 }
 
-target_variable = "is_recid"
-target_value = "Yes"
-
 df = pd.read_csv(file_path, sep=',')
 df = convert_object_to_category(df)
 # drop duplicates
