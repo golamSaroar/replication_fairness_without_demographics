@@ -1,26 +1,33 @@
-import os
-from absl import app
+from argparse import Namespace
+import pytorch_lightning as pl
+import numpy as np
 
-dataset = "uci_adult"
-adversary_loss = "ce_loss"
-adversary_label = True
-batch_size = 32
-learning_rate = 0.001
+from datasets import Dataset, CustomSubset
 
-def get_model_metadata():
-    model_name = "adversarial_reweighting"
-    base_dir = "/temp"
-    config = "{}/{}/{}_{}_{}_{}_{}".format(dataset, model_name, adversary_loss, adversary_label, str(batch_size), str(learning_rate), str(learning_rate))
-    directory = os.path.join(base_dir, config)
-    return directory, model_name
 
-def instantiate():
-    model_dir, model_name = get_model_metadata()
-    # TODO: Load Dataset
-    # Work In Progress
+def train_and_evaluate(conf):
+    conf = Namespace(**vars(conf))
 
-def main(_):
-  instantiate()
+    pl.seed_everything(conf.seed)
+    np.random.seed(conf.seed)
 
-if __name__ == "__main__":
-  app.run(main)
+    dataset = Dataset(conf.dataset, sensitive_label=conf.sensitive_label)
+    test_dataset = Dataset(conf.dataset, sensitive_label=conf.sensitive_label, test=True)
+
+    config = {
+        "lr": conf.primary_lr,
+        "batch_size": conf.batch_size,
+        "eta": conf.eta
+    }
+
+    # create training and validation set
+    permuted_indices = np.random.permutation(np.arange(0, len(dataset)))
+    train_indices, val_indices = permuted_indices[:int(0.9 * len(permuted_indices))], permuted_indices[
+                                                                                      int(0.9 * len(permuted_indices)):]
+    train_dataset, val_dataset = CustomSubset(dataset, train_indices), CustomSubset(dataset, val_indices)
+
+    model, _ = ("model", "trainer")  # TODO: write trainer
+
+    auc_scores = {}
+
+    return auc_scores

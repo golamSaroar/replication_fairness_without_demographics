@@ -1,4 +1,5 @@
 from argparse import Namespace
+import main
 
 
 def get_results(seed, conf, optimal_hyper_parameters, experiments):
@@ -21,6 +22,7 @@ def get_results(seed, conf, optimal_hyper_parameters, experiments):
             for k, v in optimal_hyper_parameters[dataset][model].items():
                 setattr(current_conf, k, v)
 
-        # TODO: train and evaluate the model
+        # train and evaluate the model
+        result_dict[(dataset, model)] = main.train_and_evaluate(current_conf)
 
     return result_dict
