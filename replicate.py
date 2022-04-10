@@ -2,6 +2,8 @@ import itertools
 import json
 from argparse import Namespace
 
+from utils import get_results
+
 default_conf = Namespace(
     primary_learner_hidden=[64, 32],
     adversary_hidden=[],  # linear adversary
@@ -23,3 +25,15 @@ default_conf = Namespace(
 models = ['Baseline', 'DRO', 'ARL', 'IPW(S)', 'IPW(S+Y)']
 datasets = ['uci_adult', 'compas', 'law_school']
 experiments = list(itertools.product(datasets, models))
+
+with open('hyper_parameters.json') as f:
+    optimal_hyper_parameters = json.load(f)
+
+results = []
+
+conf = Namespace(**vars(default_conf))
+conf.seed_run = True
+
+for seed in range(1, 11):
+    result_dict = get_results(seed, conf, optimal_hyper_parameters, experiments)
+    results.append(result_dict)
