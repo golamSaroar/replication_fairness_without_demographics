@@ -136,6 +136,14 @@ class Dataset:
     def __len__(self):
         return self.features.size(0)
 
+    @property
+    def dimensionality(self):
+        return self.features.size(1)
+
+    @property
+    def sensitive_index_to_values(self):
+        return self.index_to_values
+
 
 class CustomSubset:
     def __init__(self, dataset, indices):
@@ -162,3 +170,11 @@ class CustomSubset:
     @property
     def labels(self):
         return self.dataset.labels[self.indices]
+
+    @property
+    def dimensionality(self):
+        return self.dataset.dimensionality
+
+    @property
+    def sensitive_index_to_values(self):
+        return self.dataset.index_to_values

@@ -6,6 +6,26 @@ from pytorch_lightning.callbacks import EarlyStopping
 import torch
 
 from datasets import Dataset, CustomSubset
+from arl import ARL
+
+optimizer_dict = {
+    'Adagrad': torch.optim.Adagrad,
+    'Adam': torch.optim.Adam
+}
+
+
+def get_model(config, args, dataset):
+    model = ARL(config=config,
+                input_shape=dataset.dimensionality,
+                pretrain_steps=args.pretrain_steps,
+                prim_hidden=args.primary_learner_hidden,
+                adv_hidden=args.adversary_hidden,
+                optimizer=optimizer_dict[args.optimizer],
+                adv_input=set(args.adversary_input),
+                num_groups=len(dataset.sensitive_index_to_values),
+                opt_kwargs={"initial_accumulator_value": 0.1} if args.tf_mode else {})
+
+    return model
 
 
 def train(config,
@@ -31,7 +51,7 @@ def train(config,
             mode='max'
         ))
 
-    # TODO: get model
+    model = get_model(config, args, train_dataset)
 
     trainer = pl.Trainer(gpus=1 if torch.cuda.is_available() else 0,
                          max_steps=args.train_steps + args.pretrain_steps,
