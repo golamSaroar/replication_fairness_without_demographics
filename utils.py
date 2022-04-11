@@ -1,5 +1,8 @@
 from argparse import Namespace
 import main
+import numpy as np
+
+performance_metrics_list = ['micro_avg_auc', 'macro_avg_auc', 'min_auc', 'minority_auc', 'accuracy']
 
 
 def get_results(seed, conf, optimal_hyper_parameters, experiments):
@@ -26,3 +29,14 @@ def get_results(seed, conf, optimal_hyper_parameters, experiments):
         result_dict[(dataset, model)] = main.train_and_evaluate(current_conf)
 
     return result_dict
+
+
+def convert_result_to_dict(results, experiments, performance_metrics_list):
+    return {
+        k: {
+            metric: {
+                'mean': np.mean([result_dict[k][metric] for result_dict in results]),
+                'std': np.std([result_dict[k][metric] for result_dict in results])
+            } for metric in performance_metrics_list
+        } for k in experiments
+    }

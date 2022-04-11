@@ -72,11 +72,15 @@ class Adversary(nn.Module):
 
 class ARL(pl.LightningModule):
     def __init__(self,
+                 config,
                  input_shape,
+                 pretrain_steps,
                  prim_hidden=[64, 32],
                  adv_hidden=[],
                  adv_input={'X', 'Y'},
-                 num_groups=None):
+                 num_groups=None,
+                 optimizer=torch.optim.Adagrad,
+                 opt_kwargs={}):
         super().__init__()
 
         self.save_hyperparameters()
@@ -123,13 +127,20 @@ class ARL(pl.LightningModule):
 
         return loss
 
+    def test_step(self, batch, batch_idx):
+        x, y, s = batch
+        loss = self.learner_step(x, y, s)
+
     def validation_step(self, batch, batch_idx):
         x, y, s = batch
         loss = self.learner_step(x, y, s)
 
-    def test_step(self, batch, batch_idx):
-        x, y, s = batch
-        loss = self.learner_step(x, y, s)
+    def forward(self, x):
+        return self.learner(x)
+
+    def save_scatter(self, x, y, s, name):
+        pass
+
 
     def configure_optimizers(self):
         optimizer_learn = self.hparams.optimizer(self.learner.parameters(), lr=self.hparams.config["lr"],
@@ -138,6 +149,3 @@ class ARL(pl.LightningModule):
                                                **self.hparams.opt_kwargs)
 
         return [optimizer_learn, optimizer_adv], []
-
-    def forward(self, x):
-        return self.learner(x)

@@ -3,6 +3,9 @@ import pandas as pd
 import json
 import torch
 import itertools
+from abc import ABC, abstractmethod
+from torch.utils.data import Dataset
+import numpy as np
 
 DATASET_INFO = {
     "compas": {
@@ -24,27 +27,80 @@ DATASET_INFO = {
 }
 
 
-class Dataset:
+class BaseDataset(ABC, Dataset):
+
+    @abstractmethod
+    def __len__(self) -> int:
+        pass
+
+    @abstractmethod
+    def __getitem__(self, idx):
+        pass
+
+    @property
+    @abstractmethod
+    def dimensionality(self):
+        pass
+
+    @property
+    @abstractmethod
+    def features(self):
+        pass
+
+    @property
+    @abstractmethod
+    def sensitive_index_to_values(self):
+        pass
+
+    @property
+    @abstractmethod
+    def minority_group(self):
+        pass
+
+    @property
+    @abstractmethod
+    def group_probs(self):
+        pass
+
+    @property
+    @abstractmethod
+    def group_memberships(self) -> torch.Tensor:
+        pass
+
+    @property
+    @abstractmethod
+    def labels(self) -> torch.Tensor:
+        pass
+
+    @property
+    @abstractmethod
+    def sensitive_label(self) -> bool:
+        pass
+
+
+class FullDataset(BaseDataset):
     def __init__(self, dataset_name,
                  test=False,
                  hide_sensitive_columns=True,
                  binarize_protected_groups=True,
                  sensitive_label=False):
 
+        super().__init__()
+
         base_path = os.path.join("data", dataset_name)
         data_path = os.path.join(base_path, "test.csv" if test else "train.csv")
         vocab_path = os.path.join(base_path, "vocabulary.json")
-        mean_std_path = os.path.join(base_path, "mean_std.json")
+        mean_std_path = os.path.join(base_path, "mean_and_std.json")
         sensitive_column_names = DATASET_INFO[dataset_name]["sensitive_column_names"].copy()
         sensitive_column_values = DATASET_INFO[dataset_name]["sensitive_column_values"].copy()
         target_variable = DATASET_INFO[dataset_name]["target_variable"]
         target_value = DATASET_INFO[dataset_name]["target_value"]
 
         self.hide_sensitive_columns = hide_sensitive_columns
-        self.sensitive_label = sensitive_label
+        self._sensitive_label = sensitive_label
 
         # load data
-        features = pd.read_csv(data_path, sep=',', header=False)
+        features = pd.read_csv(data_path, sep=',', header=0)
         columns = list(features.columns)
 
         # load mean and std
@@ -56,9 +112,8 @@ class Dataset:
             features[key] -= mean_std[key][0]
             features[key] /= mean_std[key][1]
 
-        # create labels
         labels = (features[target_variable].to_numpy() == target_value).astype(int)
-        self.labels = torch.from_numpy(labels)
+        self._labels = torch.from_numpy(labels)
 
         if binarize_protected_groups:
             for col, val in zip(sensitive_column_names, sensitive_column_values):
@@ -80,30 +135,28 @@ class Dataset:
 
         columns.remove(target_variable)
         self.sensitives = features[sensitive_column_names]
-        if hide_sensitive_columns:  # remove sensitive columns
+        if hide_sensitive_columns:
             for c in sensitive_column_names:
                 columns.remove(c)
         features = features[columns]
 
-        # Create a tensor with protected group membership indices
-        self.group_memberships = torch.empty(len(features), dtype=int)  # type: ignore
+        self._group_memberships = torch.empty(len(features), dtype=int)  # type: ignore
         for i in range(len(self.group_memberships)):
             s = tuple(self.sensitives.iloc[i])
-            self.group_memberships[i] = values_to_index[s]
+            self._group_memberships[i] = values_to_index[s]
 
         # compute the minority group (the one with the fewest members) and group probabilities
         vals, counts = self.group_memberships.unique(return_counts=True)
-        self.minority_group = vals[counts.argmin().item()].item()
+        self._minority_group = vals[counts.argmin().item()].item()
 
-        # calculate group probabilities for IPW
         if sensitive_label:
             prob_identifier = torch.stack([self.group_memberships, self.labels], dim=1)
             vals, counts = prob_identifier.unique(return_counts=True, dim=0)
             probs = torch.true_divide(counts, torch.sum(counts))
-            self.group_probs = probs.reshape(-1, 2)
+            self._group_probs = probs.reshape(-1, 2)
         else:
             vals, counts = self.group_memberships.unique(return_counts=True)
-            self.group_probs = torch.true_divide(counts, torch.sum(counts).float())
+            self._group_probs = torch.true_divide(counts, torch.sum(counts).float())
 
         # load vocab
         with open(vocab_path) as json_file:
@@ -125,7 +178,7 @@ class Dataset:
             else:
                 tensors.append(torch.tensor(features[c].values).float())
 
-        self.features = torch.stack(tensors, dim=1).float()
+        self._features = torch.stack(tensors, dim=1).float()
 
     def __getitem__(self, index):
         x = self.features[index]
@@ -137,6 +190,10 @@ class Dataset:
         return self.features.size(0)
 
     @property
+    def features(self):
+        return self._features
+
+    @property
     def dimensionality(self):
         return self.features.size(1)
 
@@ -144,8 +201,28 @@ class Dataset:
     def sensitive_index_to_values(self):
         return self.index_to_values
 
+    @property
+    def minority_group(self):
+        return self._minority_group
 
-class CustomSubset:
+    @property
+    def group_probs(self):
+        return self._group_probs
+
+    @property
+    def group_memberships(self):
+        return self._group_memberships
+
+    @property
+    def labels(self):
+        return self._labels
+
+    @property
+    def sensitive_label(self):
+        return self._sensitive_label
+
+
+class CustomSubset(BaseDataset):
     def __init__(self, dataset, indices):
         self.dataset = dataset
         self.indices = indices
@@ -155,13 +232,16 @@ class CustomSubset:
             prob_identifier = torch.stack([self.group_memberships, self.labels], dim=1)
             vals, counts = prob_identifier.unique(return_counts=True, dim=0)
             probs = torch.true_divide(counts, torch.sum(counts))
-            self.group_probs = probs.reshape(-1, 2)
+            self._group_probs = probs.reshape(-1, 2)
         else:
             vals, counts = self.group_memberships.unique(return_counts=True)
-            self.group_probs = torch.true_divide(counts, torch.sum(counts).float())
+            self._group_probs = torch.true_divide(counts, torch.sum(counts).float())
 
     def __len__(self):
         return len(self.indices)
+
+    def __getitem__(self, idx):
+        return self.dataset[self.indices[idx]]
 
     @property
     def group_memberships(self):
@@ -177,4 +257,20 @@ class CustomSubset:
 
     @property
     def sensitive_index_to_values(self):
-        return self.dataset.index_to_values
+        return self.dataset.sensitive_index_to_values
+
+    @property
+    def sensitive_label(self):
+        return self.dataset.sensitive_label
+
+    @property
+    def minority_group(self):
+        return self.dataset.minority_group
+
+    @property
+    def group_probs(self):
+        return self._group_probs
+
+    @property
+    def features(self):
+        return self.dataset.features[self.indices]

@@ -1,8 +1,7 @@
 import itertools
 import json
-from argparse import Namespace
 
-from utils import get_results
+from utils import *
 
 default_conf = Namespace(
     primary_learner_hidden=[64, 32],
@@ -15,8 +14,14 @@ default_conf = Namespace(
     sensitive_label=False,
 
     eval_batch_size=512,
-    num_workers=4,  # for the Dataloader
+    num_workers=8,  # for the Dataloader
     progress_bar=True,
+    no_early_stopping=False,
+    seed_run_version=0,
+    version=None,
+    seed=0,
+    seed_run=False,
+    log_dir='training_logs',
 
     # ARL
     pretrain_steps=250,  # pretrain the learner before adversary
@@ -26,7 +31,7 @@ default_conf = Namespace(
     k=2.0,
 )
 
-models = ['Baseline', 'DRO', 'ARL', 'IPW(S)', 'IPW(S+Y)']
+models = ['ARL']
 datasets = ['uci_adult', 'compas', 'law_school']
 experiments = list(itertools.product(datasets, models))
 
@@ -41,3 +46,9 @@ conf.seed_run = True
 for seed in range(1, 11):
     result_dict = get_results(seed, conf, optimal_hyper_parameters, experiments)
     results.append(result_dict)
+
+results_dict = convert_result_to_dict(results, experiments, performance_metrics_list)
+
+with open("results.txt", "w") as results_file:
+    results_file.write(results_dict)
+    results_file.close()
