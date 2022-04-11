@@ -9,6 +9,7 @@ import numpy as np
 from datasets import FullDataset, CustomSubset
 from arl import ARL
 from baseline import Baseline
+from dro import DRO
 from utils import *
 from results import Logger, get_all_results
 
@@ -37,6 +38,15 @@ def get_model(config, args, dataset):
                          optimizer=optimizer_dict[args.optimizer],
                          opt_kwargs={})
         args.pretrain_steps = 0
+
+    elif args.model == 'DRO':
+        model = DRO(config=config,
+                    num_features=dataset.dimensionality,
+                    hidden_units=args.primary_learner_hidden,
+                    pretrain_steps=args.pretrain_steps,
+                    k=args.k,
+                    optimizer=optimizer_dict[args.optimizer],
+                    opt_kwargs={})
 
     return model
 
@@ -104,6 +114,8 @@ def train(config,
             model = ARL.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
         elif args.model == 'baseline':
             model = Baseline.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+        elif args.model == 'DRO':
+            model = DRO.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     return model, trainer
 
