@@ -8,6 +8,7 @@ import numpy as np
 
 from datasets import FullDataset, CustomSubset
 from arl import ARL
+from baseline import Baseline
 from utils import *
 from results import Logger, get_all_results
 
@@ -18,15 +19,24 @@ optimizer_dict = {
 
 
 def get_model(config, args, dataset):
-    model = ARL(config=config,
-                input_shape=dataset.dimensionality,
-                pretrain_steps=args.pretrain_steps,
-                prim_hidden=args.primary_learner_hidden,
-                adv_hidden=args.adversary_hidden,
-                optimizer=optimizer_dict[args.optimizer],
-                adv_input=set(args.adversary_input),
-                num_groups=len(dataset.sensitive_index_to_values),
-                opt_kwargs={})
+    if args.model == 'ARL':
+        model = ARL(config=config,
+                    input_shape=dataset.dimensionality,
+                    pretrain_steps=args.pretrain_steps,
+                    prim_hidden=args.primary_learner_hidden,
+                    adv_hidden=args.adversary_hidden,
+                    optimizer=optimizer_dict[args.optimizer],
+                    adv_input=set(args.adversary_input),
+                    num_groups=len(dataset.sensitive_index_to_values),
+                    opt_kwargs={})
+
+    elif args.model == 'baseline':
+        model = Baseline(config=config,
+                         num_features=dataset.dimensionality,
+                         hidden_units=args.primary_learner_hidden,
+                         optimizer=optimizer_dict[args.optimizer],
+                         opt_kwargs={})
+        args.pretrain_steps = 0
 
     return model
 
@@ -90,7 +100,10 @@ def train(config,
 
     if not args.no_early_stopping:
         assert trainer.checkpoint_callback is not None
-        model = ARL.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+        if args.model == 'ARL':
+            model = ARL.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+        elif args.model == 'baseline':
+            model = Baseline.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     return model, trainer
 

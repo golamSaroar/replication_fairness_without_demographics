@@ -31,7 +31,7 @@ default_conf = Namespace(
     k=2.0,
 )
 
-models = ['ARL']
+models = ['ARL', 'baseline']
 datasets = ['uci_adult', 'compas', 'law_school']
 experiments = list(itertools.product(datasets, models))
 
@@ -50,5 +50,5 @@ for seed in range(1, 11):
 results_dict = convert_result_to_dict(results, experiments, performance_metrics_list)
 
 with open("results.txt", "w") as results_file:
-    results_file.write(results_dict)
+    results_file.write(str(results_dict))
     results_file.close()
