@@ -16,7 +16,10 @@ class IPW(pl.LightningModule):
 
         super().__init__()
 
-        self.save_hyperparameters()
+        self.save_hyperparameters('config', 'num_features', 'hidden_units', 'optimizer', 'sensitive_label',
+                                  'opt_kwargs')
+        self.hparams.group_probs = group_probs
+        self.group_probs = group_probs
 
         self.learner = Learner(input_shape=num_features, hidden_units=hidden_units)
 
