@@ -31,7 +31,7 @@ default_conf = Namespace(
     k=2.0,
 )
 
-models = ['ARL', 'baseline', 'DRO']
+models = ['ARL', 'baseline', 'DRO', 'IPW(S)', 'IPW(S+Y)']
 datasets = ['uci_adult', 'compas', 'law_school']
 experiments = list(itertools.product(datasets, models))
 

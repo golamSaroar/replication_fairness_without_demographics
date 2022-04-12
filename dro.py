@@ -14,7 +14,7 @@ class DROLoss(nn.Module):
         self.relu = nn.ReLU()
 
     def forward(self, x, y):
-        bce = -1 * y * self.logsig(x) - (1 - y) * self.logsig(-x)
+        bce = -1 * y * self.log_sigmoid(x) - (1 - y) * self.log_sigmoid(-x)
 
         if self.k > 0:
             bce = self.relu(bce - self.eta)

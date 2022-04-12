@@ -10,6 +10,7 @@ from datasets import FullDataset, CustomSubset
 from arl import ARL
 from baseline import Baseline
 from dro import DRO
+from ipw import IPW
 from utils import *
 from results import Logger, get_all_results
 
@@ -47,6 +48,15 @@ def get_model(config, args, dataset):
                     k=args.k,
                     optimizer=optimizer_dict[args.optimizer],
                     opt_kwargs={})
+    elif args.model == 'IPW':
+        model = IPW(config=config,
+                    num_features=dataset.dimensionality,
+                    hidden_units=args.primary_learner_hidden,
+                    optimizer=optimizer_dict[args.optimizer],
+                    group_probs=dataset.group_probs,
+                    sensitive_label=args.sensitive_label,
+                    opt_kwargs={})
+        args.pretrain_steps = 0
 
     return model
 
@@ -116,6 +126,8 @@ def train(config,
             model = Baseline.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
         elif args.model == 'DRO':
             model = DRO.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
+        elif args.model == 'IPW':
+            model = IPW.load_from_checkpoint(trainer.checkpoint_callback.best_model_path)
 
     return model, trainer
 
@@ -135,10 +147,7 @@ def train_and_evaluate(conf):
         "eta": conf.eta
     }
 
-    if conf.seed_run:
-        path = f'./{conf.log_dir}/{conf.dataset}/{conf.model}/seed_run_version_{conf.seed_run_version}/seed_{conf.seed}'
-    else:
-        path = f'./{conf.log_dir}/{conf.dataset}/{conf.model}/version_{conf.version}'
+    path = get_path(conf)
 
     print(f'creating dir {path}')
     os.makedirs(path, exist_ok=True)
@@ -163,3 +172,20 @@ def train_and_evaluate(conf):
         json.dump(auc_scores, f)
 
     return auc_scores
+
+
+def get_path(conf):
+    model = conf.model
+
+    if model == 'IPW':
+        if conf.sensitive_label:
+            model = 'IPW(S+Y)'
+        else:
+            model = 'IPW(S)'
+
+    if conf.seed_run:
+        path = f'./{conf.log_dir}/{conf.dataset}/{model}/seed_run_version_{conf.seed_run_version}/seed_{conf.seed}'
+    else:
+        path = f'./{conf.log_dir}/{conf.dataset}/{model}/version_{conf.version}'
+
+    return path

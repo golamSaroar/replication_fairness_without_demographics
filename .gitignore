@@ -130,3 +130,7 @@ dmypy.json
 
 # PyCharm
 .idea/
+
+# project logs
+lightning_logs/
+training_logs/
