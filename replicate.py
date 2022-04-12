@@ -1,7 +1,7 @@
 import itertools
 import json
 
-from utils import *
+from trainer import *
 
 default_conf = Namespace(
     primary_learner_hidden=[64, 32],
