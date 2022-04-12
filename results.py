@@ -35,7 +35,7 @@ class Logger(Callback):
             save_scatter(pl_module, self.scatter_dataloader, self.name)
 
 
-def save_scatter(pl_module, dataloader: DataLoader, name: str):
+def save_scatter(pl_module, dataloader, name):
     x, y, s = next(iter(dataloader))
     pl_module.save_scatter(x.to(pl_module.device), y.to(pl_module.device), s.to(pl_module.device), name)
 

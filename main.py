@@ -148,8 +148,6 @@ def train_and_evaluate(conf):
     }
 
     path = get_path(conf)
-
-    print(f'creating dir {path}')
     os.makedirs(path, exist_ok=True)
 
     conf.log_dir = path
@@ -165,11 +163,10 @@ def train_and_evaluate(conf):
     dataloader = DataLoader(test_dataset, batch_size=conf.eval_batch_size)
     auc_scores = get_all_results(model, dataloader, test_dataset.minority_group)
 
-    print(f'results = {auc_scores}')
-
-    # save results
     with open(os.path.join(path, 'auc_scores.json'), 'w') as f:
         json.dump(auc_scores, f)
+
+    print(f'results ({conf.dataset}, {conf.model}) = {auc_scores}')
 
     return auc_scores
 

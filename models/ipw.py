@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import pytorch_lightning as pl
-from arl import Learner
+from models.arl import Learner
 
 
 class IPW(pl.LightningModule):

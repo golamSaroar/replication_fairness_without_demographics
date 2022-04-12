@@ -30,7 +30,7 @@ DATASET_INFO = {
 class BaseDataset(ABC, Dataset):
 
     @abstractmethod
-    def __len__(self) -> int:
+    def __len__(self):
         pass
 
     @abstractmethod
@@ -64,17 +64,17 @@ class BaseDataset(ABC, Dataset):
 
     @property
     @abstractmethod
-    def group_memberships(self) -> torch.Tensor:
+    def group_memberships(self):
         pass
 
     @property
     @abstractmethod
-    def labels(self) -> torch.Tensor:
+    def labels(self):
         pass
 
     @property
     @abstractmethod
-    def sensitive_label(self) -> bool:
+    def sensitive_label(self):
         pass
 
 

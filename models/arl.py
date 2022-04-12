@@ -90,7 +90,7 @@ class ARL(pl.LightningModule):
                                    adv_input=adv_input,
                                    num_groups=num_groups)
 
-        # init loss function
+        # initialize loss function
         self.loss_fct = nn.BCEWithLogitsLoss(reduction='none')
 
     def training_step(self,
@@ -140,7 +140,6 @@ class ARL(pl.LightningModule):
 
     def save_scatter(self, x, y, s, name):
         pass
-
 
     def configure_optimizers(self):
         optimizer_learn = self.hparams.optimizer(self.learner.parameters(), lr=self.hparams.config["lr"],

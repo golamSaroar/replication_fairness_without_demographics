@@ -44,8 +44,8 @@ conf = Namespace(**vars(default_conf))
 conf.seed_run = True
 
 for seed in range(1, 11):
-    result_dict = get_results(seed, conf, optimal_hyper_parameters, experiments)
-    results.append(result_dict)
+    result_per_seed = get_results(seed, conf, optimal_hyper_parameters, experiments)
+    results.append(result_per_seed)
 
 results_dict = convert_result_to_dict(results, experiments, performance_metrics_list)
 

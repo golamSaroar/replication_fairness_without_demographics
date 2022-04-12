@@ -6,7 +6,7 @@ performance_metrics_list = ['micro_avg_auc', 'macro_avg_auc', 'min_auc', 'minori
 
 
 def get_results(seed, conf, optimal_hyper_parameters, experiments):
-    result_dict = {}
+    result_per_seed = {}
 
     for dataset, model in experiments:
         current_conf = Namespace(**vars(conf))
@@ -25,10 +25,9 @@ def get_results(seed, conf, optimal_hyper_parameters, experiments):
             for k, v in optimal_hyper_parameters[dataset][model].items():
                 setattr(current_conf, k, v)
 
-        # train and evaluate the model
-        result_dict[(dataset, model)] = main.train_and_evaluate(current_conf)
+        result_per_seed[(dataset, model)] = main.train_and_evaluate(current_conf)
 
-    return result_dict
+    return result_per_seed
 
 
 def convert_result_to_dict(results, experiments, performance_metrics_list):
