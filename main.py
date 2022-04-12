@@ -7,10 +7,10 @@ import json
 import numpy as np
 
 from datasets import FullDataset, CustomSubset
-from arl import ARL
-from baseline import Baseline
-from dro import DRO
-from ipw import IPW
+from models.arl import ARL
+from models.baseline import Baseline
+from models.dro import DRO
+from models.ipw import IPW
 from utils import *
 from results import Logger, get_all_results
 
