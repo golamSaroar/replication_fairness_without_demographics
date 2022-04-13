@@ -11,7 +11,8 @@
     },
     "ARL": {
       "batch_size": 512,
-      "primary_lr": 0.01
+      "primary_lr": 0.01,
+      "sec_lr": 2
     },
     "IPW(S)": {
       "batch_size": 64,
@@ -34,7 +35,8 @@
     },
     "ARL": {
       "batch_size": 256,
-      "prim_lr": 1
+      "prim_lr": 1,
+      "sec_lr": 0.001
     },
     "IPW(S)": {
       "batch_size": 512,
@@ -57,7 +59,8 @@
     },
     "ARL": {
       "batch_size": 512,
-      "prim_lr": 0.01
+      "prim_lr": 0.01,
+      "sec_lr": 0.001
     },
     "IPW(S)": {
       "batch_size": 64,

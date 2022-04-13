@@ -1,11 +1,15 @@
 from argparse import Namespace
 import pytorch_lightning as pl
-from torch.utils.data import DataLoader
 from pytorch_lightning.callbacks import EarlyStopping, ModelCheckpoint
+from pytorch_lightning.metrics.functional.classification import auroc
 import torch
+from torch.utils.data import DataLoader
 import os
 import json
 import numpy as np
+from ray import tune
+from sklearn.model_selection import KFold
+from time import time
 
 from datasets import FullDataset, CustomSubset
 from models.arl import ARL
@@ -65,7 +69,9 @@ def train(config,
           args,
           train_dataset,
           val_dataset=None,
-          test_dataset=None):
+          test_dataset=None,
+          version=str(int(time())),
+          fold_nbr=None):
     train_loader = DataLoader(train_dataset,
                               batch_size=config['batch_size'],
                               shuffle=True,
@@ -141,14 +147,71 @@ def train_and_evaluate(conf):
     dataset = FullDataset(conf.dataset, sensitive_label=conf.sensitive_label)
     test_dataset = FullDataset(conf.dataset, sensitive_label=conf.sensitive_label, test=True)
 
-    config = {
-        "lr": conf.primary_lr,
-        "batch_size": conf.batch_size,
-        "eta": conf.eta
-    }
+    if conf.version is None:
+        conf.version = str(int(time()))
 
-    path = get_path(conf)
-    os.makedirs(path, exist_ok=True)
+    if conf.grid_search:
+        lr_list = [0.001, 0.01, 0.1, 1, 2, 5]
+        batch_size_list = [32, 64, 128, 256, 512]
+        eta_list = [0.0]  # not required for other models except DRO
+
+        if conf.model == 'DRO':
+            eta_list = [0.5, 0.6, 0.7, 0.8, 0.9]
+
+        config = {
+            'lr': tune.grid_search(lr_list),
+            'batch_size': tune.grid_search(batch_size_list),
+            'eta': tune.grid_search(eta_list)
+        }
+
+        # perform n-fold cross-validation
+        kfold = KFold(n_splits=conf.num_folds)
+        fold_indices = list(kfold.split(dataset))
+
+        if conf.model == 'IPW':
+            if conf.sensitive_label:
+                path = f'grid_search/IPW(S+Y)_{conf.dataset}_version_{conf.version}'
+            else:
+                path = f'grid_search/IPW(S)_{conf.dataset}_version_{conf.version}'
+        else:
+            path = f'grid_search/{conf.model}_{conf.dataset}_version_{conf.version}'
+
+        grid_search = tune.run(
+            tune.with_parameters(
+                get_auc_per_fold,
+                args=conf,
+                dataset=dataset,
+                fold_indices=fold_indices),
+            resources_per_trial={
+                'cpu': conf.num_cpus
+            },
+            config=config,
+            metric='auc',
+            mode='max',
+            local_dir=os.getcwd(),
+            name=path
+        )
+
+        print('Optimal hyperparameters are: ', grid_search.best_config)
+
+        # save grid search results
+        df = grid_search.results_df
+        df.to_csv(os.path.join(path, 'results.csv'), index=False)
+
+        # set hyperparameters for final run
+        config['lr'] = grid_search.best_config['lr']
+        config['batch_size'] = grid_search.best_config['batch_size']
+        config['eta'] = grid_search.best_config['eta']
+
+    else:
+        config = {
+            "lr": conf.primary_lr,
+            "batch_size": conf.batch_size,
+            "eta": conf.eta
+        }
+
+        path = get_path(conf)
+        os.makedirs(path, exist_ok=True)
 
     conf.log_dir = path
 
@@ -167,6 +230,9 @@ def train_and_evaluate(conf):
         json.dump(auc_scores, f)
 
     print(f'results ({conf.dataset}, {conf.model}) = {auc_scores}')
+
+    if conf.grid_search:
+        return auc_scores, grid_search.best_config
 
     return auc_scores
 
@@ -225,3 +291,33 @@ def convert_result_to_dict(results, experiments, performance_metrics_list):
             } for metric in performance_metrics_list
         } for k in experiments
     }
+
+
+def get_auc_per_fold(config,
+                     args,
+                     dataset,
+                     fold_indices):
+    print(f'Starting run with seed {args.seed} - lr {config["lr"]} - batch_size {config["batch_size"]}')
+
+    fold_nbr = 0
+    aucs = []
+    for train_indices, val_indices in fold_indices:
+        fold_nbr += 1
+
+        # create datasets for fold
+        train_dataset = CustomSubset(dataset, train_indices)
+        val_dataset = CustomSubset(dataset, val_indices)
+
+        # train model
+        model, _ = train(config, args, train_dataset=train_dataset, val_dataset=val_dataset, version=args.version,
+                         fold_nbr=fold_nbr)
+
+        # Evaluate on validation set to get an estimate of performance
+        scores = torch.sigmoid(model(val_dataset.features))
+        aucs.append(auroc(scores, val_dataset.labels).item())
+
+    mean_auc = np.mean(aucs)
+    print(f'Finished run with seed {args.seed} - lr {config["lr"]} - bs {config["batch_size"]} - mean auc: {mean_auc}')
+    tune.report(auc=mean_auc)
+
+    return mean_auc
