@@ -148,3 +148,33 @@ class ARL(pl.LightningModule):
                                                **self.hparams.opt_kwargs)
 
         return [optimizer_learn, optimizer_adv], []
+
+    def get_lambda(self, dataloader):
+        lambdas = []
+        true_labels = []
+        predictions = []
+        memberships = []
+
+        for x, y, s in iter(dataloader):
+            x = x.to(self.device)
+            y = y.to(self.device)
+            s = s.to(self.device)
+
+            # put through adversary
+            batch_lambdas = self.adversary(x, y, s)
+
+            # put through learner
+            batch_pred = torch.round(torch.sigmoid(self.learner(x)))
+
+            # store results
+            predictions.append(batch_pred)
+            true_labels.append(y)
+            lambdas.append(batch_lambdas)
+            memberships.append(s)
+
+        lambdas = torch.cat(lambdas, dim=0)
+        predictions = torch.cat(predictions, dim=0)
+        true_labels = torch.cat(true_labels, dim=0)
+        memberships = torch.cat(memberships, dim=0)
+
+        return lambdas, predictions, true_labels, memberships
