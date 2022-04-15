@@ -2,61 +2,97 @@
 
 This repository is a replication of the paper [Fairness without Demographics through Adversarially Reweighted Learning](https://arxiv.org/pdf/2006.13114v3.pdf). 
 
->📋  Optional: include a graphic explaining your approach/main result, bibtex entry, link to demos, blog posts and tutorials
+![Cover](cover.png)
 
 ## Requirements
 
-awk -F '[[:space:]]*,[[:space:]]*' '{$1=$1}1' OFS=, adult.data
+The easiest way to set up is creating a virtualenv and installing the requirements in it.  
+Create a conda environment:
+
+```
+conda create --name myenv python=3.7
+```
 
 To install requirements:
 
-```setup
+```
 pip install -r requirements.txt
 ```
 
->📋  Describe how to set up the environment, e.g. pip/conda/docker commands, download datasets, etc...
+## Project Structure
 
-## Training
+`/data`: contains the datasets used for the experiments  
+`/data_preprocessing`: contains scripts for preprocessing the datasets  
+`/models`: PyTorch implementation of all the models used in this study  
 
-To train the model(s) in the paper, run this command:
+Additionally, a directory named `/grid_search` will be created when running the grid search. Also directory called 
+`/training_logs` and `/lightning_logs` will be created everytime the program is run. These directories are added to 
+`.gitignore`.
 
-```train
-python train.py --input-data <path_to_data> --alpha 10 --beta 20
+## Getting Datasets
+I have created a simple bash script to download all three datasets and place them in the `/data` directory.
+Simply run `fetch_data.sh` from the project root directory.
+
+## Hyperparameter Tuning
+To execute grid searches for all models and datasets with default settings, 
+run the following command (I am using `8` because that's the number of CPUs in my computer):
+
+```
+python grid_search_hyperparams.py --num_workers 8
 ```
 
->📋  Describe how to train the models, with example commands on how to train the models in your paper, including the full training procedure and appropriate hyperparameters.
+Once the grid search is complete, the optimal hyperparameters will be saved in JSON format in `hyper_parameters.json`.
 
-## Evaluation
+>This command may take a long time to execute. It takes my computer around 15 hours to complete.
 
-To evaluate my model on ImageNet, run:
+## Running
 
-```eval
-python eval.py --model-file mymodel.pth --benchmark imagenet
+To get the replication results, run this command:
+
+```
+python replicate.py
 ```
 
->📋  Describe how to evaluate the trained models on benchmarks reported in the paper, give commands that produce the results (section below).
+This will train all the models, and store metrics (AUC and accuracy) for each (model, dataset) pair in `results.txt`.
 
-## Pre-trained Models
+## Insights into ARL
 
-You can download pretrained models here:
+To get the predictive accuracy of ARL in identifying the protected groups, run the following:
 
-- [My awesome model](https://drive.google.com/mymodel.pth) trained on ImageNet using parameters x,y,z. 
+```
+python identifying_groups.py
+```
 
->📋  Give a link to where/how the pretrained models can be downloaded and how they were trained (if applicable).  Alternatively you can have an additional column in your results table with a link to the models.
+The output will be stored in `ci.txt`. Also, run the following to check the example weights of the adversary:
+
+```
+python adversary_outputs.py
+```
+
+This will output a PDF named `ARL_learnt_weights.pdf`
 
 ## Results
+The image below shows the percentage point difference in **(a)** Avg AUC and **(b)**
+Macro-avg AUC **(c)** Minimum AUC  and **(d)** Minority AUC between my results and those reported in
+the paper. 
 
-Our model achieves the following performance on :
+![Difference between Paper and Replication](results_example.png)
 
-### [Image Classification on ImageNet](https://paperswithcode.com/sota/image-classification-on-imagenet)
+For the complete list of results, please read [the report](report.pdf). 
 
-| Model name         | Top 1 Accuracy  | Top 5 Accuracy |
-| ------------------ |---------------- | -------------- |
-| My awesome model   |     85%         |      95%       |
+## Replication Checklist
 
->📋  Include a table of results from your paper, and link back to the leaderboard for clarity and context. If your main result is a figure, include that figure and link to the command or notebook to reproduce it. 
+Below is the list of tasks for this replication and the section in the report where I have addressed each task:  
 
+1. Preprocessing datasets following the steps mentioned
+in the paper - Completed (section 2.2.2).
+2. Implementing the proposed ARL approach - Completed
+(section 2.1.1).
+3. Implementing two baseline and one state-of-the-art approach to compare against ARL - Completed (section
+2.1).
+4. Evaluating and comparing ARL and the other approaches on the datasets - Completed (section 3.2,
+3.3, 3.4).
+5. Understanding ARL, presenting insights into the inner
+working of ARL- Completed (section 3.5, 3.6)
 
-## Contributing
-
->📋  Pick a licence and describe how to contribute to your code repository. 
+> Thank You!

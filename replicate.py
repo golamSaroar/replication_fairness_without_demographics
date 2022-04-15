@@ -22,6 +22,7 @@ default_conf = Namespace(
     seed=0,
     seed_run=False,
     log_dir='training_logs',
+    grid_search=False,
 
     # ARL
     pretrain_steps=250,  # pretrain the learner before adversary

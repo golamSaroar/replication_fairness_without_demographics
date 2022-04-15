@@ -1,74 +1,74 @@
 {
   "uci_adult": {
     "baseline": {
-      "batch_size": 256,
-      "primary_lr": 0.01
+      "batch_size": 64,
+      "primary_lr": 0.1
     },
     "DRO": {
-      "batch_size": 128,
-      "prim_lr": 1,
+      "batch_size": 512,
+      "prim_lr": 0.1,
       "eta": 0.5
     },
     "ARL": {
       "batch_size": 512,
       "primary_lr": 0.01,
-      "sec_lr": 2
+      "sec_lr": 0.01
     },
     "IPW(S)": {
-      "batch_size": 64,
-      "prim_lr": 0.001
+      "batch_size": 128,
+      "prim_lr": 0.01
     },
     "IPW(S+Y)": {
-      "batch_size": 512,
-      "prim_lr": 0.01
+      "batch_size": 128,
+      "prim_lr": 0.1
     }
   },
   "law_school": {
     "baseline": {
-      "batch_size": 128,
+      "batch_size": 256,
       "primary_lr": 0.1
     },
     "DRO": {
-      "batch_size": 128,
-      "prim_lr": 1,
-      "eta": 0.6
+      "batch_size": 64,
+      "prim_lr": 0.1,
+      "eta": 0.5
     },
     "ARL": {
       "batch_size": 256,
-      "prim_lr": 1,
+      "prim_lr": 0.1,
       "sec_lr": 0.001
     },
     "IPW(S)": {
-      "batch_size": 512,
+      "batch_size": 256,
       "prim_lr": 0.1
     },
     "IPW(S+Y)": {
-      "batch_size": 512,
-      "prim_lr": 0.1
+      "batch_size": 64,
+      "prim_lr": 0.01
     }
   },
   "compas": {
     "baseline": {
-      "batch_size": 512,
+      "batch_size": 32,
       "primary_lr": 0.01
     },
     "DRO": {
-      "batch_size": 256,
-      "prim_lr": 1,
+      "batch_size": 64,
+      "prim_lr": 0.01,
       "eta": 0.6
     },
     "ARL": {
-      "batch_size": 512,
+      "batch_size": 32,
       "prim_lr": 0.01,
       "sec_lr": 0.001
     },
     "IPW(S)": {
       "batch_size": 64,
-      "prim_lr": 0.001
+      "prim_lr": 0.01
     },
     "IPW(S+Y)": {
-      "batch_size": 128,
-      "prim_lr": 0.001
+      "batch_size": 64,
+      "prim_lr": 0.01
     }
   }
 }

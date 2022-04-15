@@ -134,3 +134,4 @@ dmypy.json
 # project logs
 lightning_logs/
 training_logs/
+grid_search/
